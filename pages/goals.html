@@ -7,6 +7,125 @@
   <link rel="stylesheet" href="../css/main.css" />
   <link rel="stylesheet" href="../css/components.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    /* ── Custom Goals Grid ─────────────────────────────────── */
+    .custom-goals-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-top: 0.25rem;
+    }
+
+    .custom-goal-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+      transition: border-color 0.2s;
+    }
+    .custom-goal-card:hover { border-color: var(--border-2); }
+    .custom-goal-card.goal-done { border-color: var(--green); }
+
+    .cg-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+    .cg-icon-title {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .cg-icon { font-size: 1.4rem; line-height: 1; }
+    .cg-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .cg-category {
+      font-size: 0.72rem;
+      color: var(--text-3);
+      text-transform: capitalize;
+      margin-top: 1px;
+    }
+    .cg-actions {
+      display: flex;
+      gap: 0.25rem;
+      flex-shrink: 0;
+    }
+
+    .cg-desc {
+      font-size: 0.82rem;
+      color: var(--text-3);
+      line-height: 1.45;
+    }
+
+    .cg-progress-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+    .cg-numbers { display: flex; align-items: baseline; gap: 0.15rem; }
+    .cg-current { font-size: 1.25rem; font-weight: 700; color: var(--text); }
+    .cg-sep, .cg-target { font-size: 0.85rem; color: var(--text-3); }
+    .cg-unit { font-size: 0.8rem; color: var(--text-3); }
+    .cg-badge {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--green);
+      background: color-mix(in srgb, var(--green) 12%, transparent);
+      padding: 2px 8px;
+      border-radius: 99px;
+    }
+    .cg-pct {
+      font-size: 0.72rem;
+      color: var(--text-3);
+      text-align: right;
+      margin-top: 2px;
+    }
+
+    .bar-done { background: var(--green) !important; }
+
+    .cg-footer {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      margin-top: 0.1rem;
+    }
+    .cg-deadline {
+      font-size: 0.75rem;
+      color: var(--text-3);
+    }
+    .cg-log-row {
+      display: flex;
+      gap: 0.4rem;
+      align-items: center;
+    }
+    .cg-log-input {
+      width: 90px;
+      padding: 0.3rem 0.5rem;
+      font-size: 0.82rem;
+    }
+
+    /* Section divider */
+    .section-divider {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 2rem 0 1rem;
+    }
+    .section-divider h2 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+  </style>
 </head>
 <body>
   <div class="app-shell">
@@ -15,11 +134,12 @@
     <main class="main-content">
       <div class="page-header">
         <h1 class="page-title">Goals</h1>
-        <p class="page-subtitle">Set your nutrition and fitness targets. These drive your daily progress bars.</p>
+        <p class="page-subtitle">Set your nutrition targets and add any personal goals you want to track.</p>
       </div>
 
+      <!-- ── Existing: Nutrition Goals ─────────────────────── -->
       <div class="card" style="max-width:560px;">
-        <div class="card-title">Your Goal</div>
+        <div class="card-title">Nutrition & Fitness Goal</div>
 
         <div class="form-group">
           <label>Goal Type</label>
@@ -61,7 +181,7 @@
         <button class="btn-primary" id="save-goals">Save Goals</button>
       </div>
 
-      <!-- Goal presets -->
+      <!-- Quick presets -->
       <div class="card mt-3" style="max-width:560px;">
         <div class="card-title">Quick Presets</div>
         <div style="display:flex;flex-direction:column;gap:0.5rem;">
@@ -71,6 +191,17 @@
           <button class="btn-ghost" data-preset="productivity">🧠 Productivity — 2000 kcal / 120g protein</button>
         </div>
       </div>
+
+      <!-- ── New: Custom Goals ──────────────────────────────── -->
+      <div class="section-divider" style="max-width:900px;">
+        <h2>My Custom Goals</h2>
+        <button class="btn-primary" id="add-custom-goal-btn">+ Add Goal</button>
+      </div>
+
+      <div id="custom-goals-list" class="custom-goals-grid" style="max-width:900px;">
+        <!-- rendered by JS -->
+      </div>
+
     </main>
   </div>
 
@@ -78,6 +209,7 @@
     import { initGoals } from "../js/goals.js";
     initGoals();
 
+    // Presets (unchanged)
     const presets = {
       bulk:         { cal: 3000, prot: 180, carbs: 350, fat: 90 },
       cut:          { cal: 1800, prot: 160, carbs: 180, fat: 55 },
