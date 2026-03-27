@@ -5,36 +5,67 @@ const USDA_API_KEY = "3xfW4ib6a6Tg8BhxkYckndMf4HIlNgvYKe6yUrcV"; // Replace with
 // ── USDA FoodData Central ───────────────────────────────────
 async function fetchUSDA(query, isCooked) {
   const searchTerm = isCooked ? `${query} cooked` : query;
-  const url = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(searchTerm)}&pageSize=5&api_key=${USDA_API_KEY}`;
+
+  // Foundation & SR Legacy data types store all nutrients per 100g by definition.
+  // Branded foods store per-serving — excluding them avoids the scaling bug.
+  const url = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(searchTerm)}&dataType=Foundation,SR%20Legacy&pageSize=5&api_key=${USDA_API_KEY}`;
 
   const res = await fetch(url);
   if (!res.ok) throw new Error("USDA request failed");
   const data = await res.json();
 
-  if (!data.foods || data.foods.length === 0) throw new Error("No USDA results");
+  // If Foundation/SR Legacy returns nothing, fall back to all types (branded etc.)
+  // but normalise by servingSize so values are always per-100g.
+  let foods = data.foods || [];
+  if (foods.length === 0) {
+    const fallbackUrl = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(searchTerm)}&pageSize=5&api_key=${USDA_API_KEY}`;
+    const fallbackRes = await fetch(fallbackUrl);
+    if (!fallbackRes.ok) throw new Error("USDA request failed");
+    const fallbackData = await fallbackRes.json();
+    foods = fallbackData.foods || [];
+  }
 
-  const food = data.foods[0];
+  if (foods.length === 0) throw new Error("No USDA results");
+
+  const food = foods[0];
+
+  // servingSize is populated for Branded items (e.g. 28g per serving).
+  // For Foundation/SR Legacy it is absent, meaning values are already per 100g.
+  const servingSize = food.servingSize && food.servingSize > 0 ? food.servingSize : 100;
+  const normFactor  = 100 / servingSize; // = 1.0 for Foundation/SR Legacy
+
   const nutrients = {};
   (food.foodNutrients || []).forEach(n => {
     const name = n.nutrientName?.toLowerCase() || "";
     const unit = n.unitName?.toLowerCase() || "";
-    // USDA returns energy as nutrientName "Energy" with unitName "KCAL"
-    if (name.includes("energy") && (unit === "kcal" || unit === "kcal")) nutrients.calories = n.value;
-    // Also catch by nutrient number 1008 (Energy in kcal)
-    if (n.nutrientNumber === "1008" || n.nutrientId === 1008) nutrients.calories = n.value;
-    if (name.includes("protein")) nutrients.protein = n.value;
-    if (name.includes("carbohydrate")) nutrients.carbs = n.value;
-    if (name.includes("total lipid") || name.includes("fat")) nutrients.fat = n.value;
+    const num  = String(n.nutrientNumber || "");
+
+    // Energy — USDA nutrient number 1008 = Energy (kcal)
+    if (num === "1008" || (name.includes("energy") && unit === "kcal")) {
+      nutrients.calories = n.value;
+    }
+    // Protein — nutrient number 1003
+    if (num === "1003" || (name.includes("protein") && !name.includes("non-protein"))) {
+      nutrients.protein = n.value;
+    }
+    // Carbohydrate — nutrient number 1005
+    if (num === "1005" || name.includes("carbohydrate")) {
+      nutrients.carbs = n.value;
+    }
+    // Total fat — nutrient number 1004
+    if (num === "1004" || name.includes("total lipid")) {
+      nutrients.fat = n.value;
+    }
   });
 
   return {
     source: "USDA",
     foodName: food.description,
     per100g: {
-      calories: nutrients.calories || 0,
-      protein:  nutrients.protein  || 0,
-      carbs:    nutrients.carbs    || 0,
-      fat:      nutrients.fat      || 0,
+      calories: Math.round((nutrients.calories || 0) * normFactor * 10)  / 10,
+      protein:  Math.round((nutrients.protein  || 0) * normFactor * 100) / 100,
+      carbs:    Math.round((nutrients.carbs    || 0) * normFactor * 100) / 100,
+      fat:      Math.round((nutrients.fat      || 0) * normFactor * 100) / 100,
     }
   };
 }
@@ -52,14 +83,15 @@ async function fetchOpenFoodFacts(query) {
   const product = data.products.find(p => p.nutriments) || data.products[0];
   const n = product.nutriments || {};
 
+  // OFF _100g fields are always per 100g — no normalization needed
   return {
     source: "Open Food Facts",
     foodName: product.product_name || query,
     per100g: {
-      calories: n["energy-kcal_100g"] || n["energy_100g"] / 4.184 || 0,
-      protein:  n["proteins_100g"]    || 0,
+      calories: n["energy-kcal_100g"] || (n["energy_100g"] ? n["energy_100g"] / 4.184 : 0),
+      protein:  n["proteins_100g"]      || 0,
       carbs:    n["carbohydrates_100g"] || 0,
-      fat:      n["fat_100g"]         || 0,
+      fat:      n["fat_100g"]           || 0,
     }
   };
 }
@@ -82,8 +114,11 @@ export async function fetchNutrition(query, weightG, cookingType) {
     }
   }
 
-  // Cooking adjustment: cooked food is typically denser by ~25% water loss
+  // Cooking adjustment: cooked food loses ~20-25% water, concentrating nutrients.
+  // Only apply to OFF results since USDA cooked variants are already adjusted.
   const cookMultiplier = (cookingType === "cooked" && result.source !== "USDA") ? 1.25 : 1.0;
+
+  // factor scales all per-100g values to the actual weight entered by the user
   const factor = (weightG / 100) * cookMultiplier;
 
   const totals = {
@@ -93,8 +128,8 @@ export async function fetchNutrition(query, weightG, cookingType) {
     fat:      Math.round(result.per100g.fat       * factor * 10) / 10,
   };
 
-  if (isCooked && cookingType !== "na") {
-    warning = (warning || "") + " Note: calorie values may vary based on cooking method.";
+  if (isCooked) {
+    warning = (warning ? warning + " " : "") + "Note: calorie values may vary based on cooking method.";
   }
 
   return { ...totals, foodName: result.foodName, source: result.source, warning };
