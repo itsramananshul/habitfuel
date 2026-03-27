@@ -16,7 +16,7 @@
 //
 // ============================================================
 
-const SUPABASE_URL = "Yhttps://nqenenylhkvfyqjbqgzr.supabase.co";
+const SUPABASE_URL = "https://nqenenylhkvfyqjbqgzr.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_wBAKOI30U21g-R35NRy-2w_8kItJ5G9";
 
 const { createClient } = supabase;
