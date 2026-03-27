@@ -14,32 +14,28 @@ async function fetchUSDA(query, isCooked) {
   let foods = data.foods || [];
   if (foods.length === 0) throw new Error("No USDA results");
 
-  // Pick the food whose description best matches the user's query.
-  // Score = number of query words found in the food description.
-  // This prevents e.g. "chicken breast" from matching "chicken breast tenders, breaded".
+  // Among all results, pick the one with the SHORTEST description
+  // that still contains all the user's query words.
+  // Plain foods (e.g. "Chicken, breast, cooked") are always shorter than
+  // processed ones (e.g. "Chicken breast tenders, breaded, cooked, microwaved").
   const queryWords = query.toLowerCase().split(/\s+/);
-  let bestFood = foods[0];
-  let bestScore = -1;
 
-  for (const food of foods) {
-    const desc = food.description.toLowerCase();
-    const wordMatches = queryWords.filter(w => desc.includes(w)).length;
-    // Penalise results that add extra unwanted words (shorter description = closer match)
-    const score = wordMatches - desc.split(/[\s,]+/).length * 0.05;
-    if (score > bestScore) {
-      bestScore = score;
-      bestFood = food;
-    }
-  }
+  const matching = foods.filter(f =>
+    queryWords.every(w => f.description.toLowerCase().includes(w))
+  );
+
+  const pool = matching.length > 0 ? matching : foods;
+  const bestFood = pool.reduce((a, b) =>
+    a.description.length <= b.description.length ? a : b
+  );
 
   const nutrients = {};
   (bestFood.foodNutrients || []).forEach(n => {
     const num = String(n.nutrientNumber || "");
-    // Use USDA nutrient numbers directly (confirmed from real API response)
-    if (num === "208") nutrients.calories = n.value; // Energy (kcal)
+    if (num === "208") nutrients.calories = n.value; // Energy kcal
     if (num === "203") nutrients.protein  = n.value; // Protein
-    if (num === "205") nutrients.carbs    = n.value; // Carbohydrate, by difference
-    if (num === "204") nutrients.fat      = n.value; // Total lipid (fat)
+    if (num === "205") nutrients.carbs    = n.value; // Carbohydrate
+    if (num === "204") nutrients.fat      = n.value; // Total fat
   });
 
   return {
@@ -72,9 +68,9 @@ async function fetchOpenFoodFacts(query) {
     foodName: product.product_name || query,
     per100g: {
       calories: n["energy-kcal_100g"] || (n["energy_100g"] ? n["energy_100g"] / 4.184 : 0),
-      protein:  n["proteins_100g"]      || 0,
+      protein:  n["proteins_100g"]    || 0,
       carbs:    n["carbohydrates_100g"] || 0,
-      fat:      n["fat_100g"]           || 0,
+      fat:      n["fat_100g"]         || 0,
     }
   };
 }
@@ -97,10 +93,7 @@ export async function fetchNutrition(query, weightG, cookingType) {
     }
   }
 
-  // Cooking adjustment for OFF only (USDA cooked variants already adjusted)
   const cookMultiplier = (cookingType === "cooked" && result.source !== "USDA") ? 1.25 : 1.0;
-
-  // Scale per-100g values to the actual weight the user entered
   const factor = (weightG / 100) * cookMultiplier;
 
   const totals = {
