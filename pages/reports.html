@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HabitFuel — Reports</title>
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <style>
+    .insight-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      padding: 0;
+    }
+    .insight-list li {
+      font-size: 0.9rem;
+      color: var(--text-2);
+      padding-left: 1rem;
+      border-left: 2px solid var(--border-2);
+      line-height: 1.5;
+    }
+    .insight-list li strong { color: var(--text); }
+    .reports-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    @media (max-width: 768px) { .reports-grid { grid-template-columns: 1fr; } }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <div id="sidebar"></div>
+
+    <main class="main-content">
+      <div class="page-header">
+        <h1 class="page-title" id="report-title">Monthly Report</h1>
+        <p class="page-subtitle">Insights and analysis from your tracking data.</p>
+      </div>
+
+      <!-- Month Heatmap -->
+      <div class="card" style="margin-bottom:1.5rem;">
+        <div class="card-title">Habit Heatmap — This Month</div>
+        <div id="report-heatmap" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:0.5rem;"></div>
+        <div class="heatmap-legend" style="margin-top:0.75rem;display:flex;align-items:center;gap:0.5rem;font-size:0.75rem;color:var(--text-3);">
+          <div class="heat-cell heat-0"></div> None
+          <div class="heat-cell heat-1" style="margin-left:0.75rem;"></div> Partial
+          <div class="heat-cell heat-2" style="margin-left:0.75rem;"></div> Most
+          <div class="heat-cell heat-3" style="margin-left:0.75rem;"></div> Complete
+        </div>
+      </div>
+
+      <div class="reports-grid">
+        <div class="card">
+          <div class="card-title">Habit Insights</div>
+          <div id="insight-habits"><div class="empty-state" style="padding:1rem 0;">Loading...</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Nutrition Insights</div>
+          <div id="insight-nutrition"><div class="empty-state" style="padding:1rem 0;">Loading...</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">💡 Suggestions for Improvement</div>
+        <div id="insight-suggestions"><div class="empty-state" style="padding:1rem 0;">Loading...</div></div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { initReports } from "../js/reports.js";
+    initReports();
+  </script>
+</body>
+</html>

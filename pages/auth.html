@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HabitFuel — Sign In</title>
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/auth.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <div class="auth-logo-mark">HF</div>
+        <div>
+          <div class="auth-logo-name">HabitFuel</div>
+          <div class="auth-logo-tagline">Discipline, tracked.</div>
+        </div>
+      </div>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="signin">Sign In</button>
+        <button class="auth-tab" data-tab="signup">Sign Up</button>
+      </div>
+
+      <div id="auth-error" class="auth-error hidden"></div>
+
+      <!-- Sign In -->
+      <div id="panel-signin">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="si-email" class="form-input" placeholder="you@email.com" autocomplete="email" />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="si-password" class="form-input" placeholder="••••••••" autocomplete="current-password" />
+        </div>
+        <button class="btn-primary" id="btn-signin" style="width:100%;justify-content:center;margin-top:0.5rem;">
+          Sign In
+        </button>
+      </div>
+
+      <!-- Sign Up -->
+      <div id="panel-signup" class="hidden">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="su-email" class="form-input" placeholder="you@email.com" autocomplete="email" />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="su-password" class="form-input" placeholder="Min 6 characters" autocomplete="new-password" />
+        </div>
+        <div class="form-group">
+          <label>Confirm Password</label>
+          <input type="password" id="su-confirm" class="form-input" placeholder="Repeat password" />
+        </div>
+        <button class="btn-primary" id="btn-signup" style="width:100%;justify-content:center;margin-top:0.5rem;">
+          Create Account
+        </button>
+      </div>
+
+      <div class="auth-footer">
+        By continuing, you agree to use HabitFuel responsibly. It's free, always.
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { signIn, signUp, getUser } from "../js/auth.js";
+    import { setLoading } from "../js/ui.js";
+
+    // Already logged in?
+    getUser().then(u => { if (u) window.location.href = "/pages/dashboard.html"; });
+
+    // Tab switching
+    const tabs = document.querySelectorAll(".auth-tab");
+    tabs.forEach(tab => {
+      tab.addEventListener("click", () => {
+        tabs.forEach(t => t.classList.remove("active"));
+        tab.classList.add("active");
+        const which = tab.dataset.tab;
+        document.getElementById("panel-signin").classList.toggle("hidden", which !== "signin");
+        document.getElementById("panel-signup").classList.toggle("hidden", which !== "signup");
+        clearError();
+      });
+    });
+
+    function showError(msg) {
+      const el = document.getElementById("auth-error");
+      el.textContent = msg;
+      el.classList.remove("hidden");
+    }
+    function clearError() {
+      document.getElementById("auth-error").classList.add("hidden");
+    }
+
+    // Sign In
+    document.getElementById("btn-signin").addEventListener("click", async () => {
+      const btn   = document.getElementById("btn-signin");
+      const email = document.getElementById("si-email").value.trim();
+      const pass  = document.getElementById("si-password").value;
+      clearError();
+      if (!email || !pass) { showError("Please fill in all fields."); return; }
+      setLoading(btn, true, "Signing in...");
+      try {
+        await signIn(email, pass);
+        window.location.href = "/pages/dashboard.html";
+      } catch (e) {
+        showError(e.message || "Sign in failed.");
+        setLoading(btn, false);
+      }
+    });
+
+    // Sign Up
+    document.getElementById("btn-signup").addEventListener("click", async () => {
+      const btn     = document.getElementById("btn-signup");
+      const email   = document.getElementById("su-email").value.trim();
+      const pass    = document.getElementById("su-password").value;
+      const confirm = document.getElementById("su-confirm").value;
+      clearError();
+      if (!email || !pass) { showError("Please fill in all fields."); return; }
+      if (pass !== confirm) { showError("Passwords do not match."); return; }
+      if (pass.length < 6)  { showError("Password must be at least 6 characters."); return; }
+      setLoading(btn, true, "Creating account...");
+      try {
+        await signUp(email, pass);
+        showError(""); 
+        // Show success message
+        document.getElementById("panel-signup").innerHTML = `
+          <div style="text-align:center;padding:1.5rem 0;color:var(--green);">
+            ✓ Account created! Check your email to confirm, then sign in.
+          </div>`;
+      } catch (e) {
+        showError(e.message || "Sign up failed.");
+        setLoading(btn, false);
+      }
+    });
+
+    // Enter key support
+    document.addEventListener("keydown", e => {
+      if (e.key !== "Enter") return;
+      const activePanel = document.getElementById("panel-signup").classList.contains("hidden") ? "signin" : "signup";
+      document.getElementById(activePanel === "signin" ? "btn-signin" : "btn-signup").click();
+    });
+  </script>
+</body>
+</html>

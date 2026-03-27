@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HabitFuel — Calories</title>
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="stylesheet" href="../css/calories.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <div id="sidebar"></div>
+
+    <main class="main-content">
+      <div class="page-header">
+        <h1 class="page-title">Calorie Tracker</h1>
+        <p class="page-subtitle">Log your food manually or let us fetch the nutrition data automatically.</p>
+      </div>
+
+      <!-- Daily Summary -->
+      <div class="card" style="margin-bottom:1.5rem;">
+        <div class="card-title">Today's Summary</div>
+        <div class="calorie-summary">
+          <div class="macro-pill">
+            <div class="macro-label">Calories</div>
+            <div class="macro-value" id="total-calories">0 / 2000 kcal</div>
+            <div class="progress-bar-wrap">
+              <div class="progress-bar-fill" id="cal-bar" style="width:0%"></div>
+            </div>
+          </div>
+          <div class="macro-pill">
+            <div class="macro-label">Protein</div>
+            <div class="macro-value" id="total-protein">0g</div>
+            <div class="progress-bar-wrap">
+              <div class="progress-bar-fill" id="prot-bar" style="width:0%;background:var(--green)"></div>
+            </div>
+          </div>
+        </div>
+        <div class="macro-inline">
+          <span>Carbs: <strong id="total-carbs">0g</strong></span>
+          <span>Fat: <strong id="total-fat">0g</strong></span>
+        </div>
+      </div>
+
+      <!-- Log Entry -->
+      <div class="card" style="margin-bottom:1.5rem;">
+        <div class="card-title">Log Food</div>
+
+        <div class="tab-bar">
+          <button class="tab-btn active" data-panel="panel-manual">Manual</button>
+          <button class="tab-btn" data-panel="panel-auto">Auto-Fetch</button>
+        </div>
+
+        <!-- Manual Entry -->
+        <div class="tab-panel active" id="panel-manual">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Food Name</label>
+              <input type="text" id="m-food" class="form-input" placeholder="e.g. Chicken breast" />
+            </div>
+            <div class="form-group">
+              <label>Cooking</label>
+              <select id="m-cooking" class="form-select">
+                <option value="na">N/A</option>
+                <option value="raw">Raw / Uncooked</option>
+                <option value="cooked">Cooked</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Weight (g)</label>
+              <input type="number" id="m-weight" class="form-input" placeholder="e.g. 150" min="0" />
+            </div>
+            <div class="form-group">
+              <label>Calories (kcal) *</label>
+              <input type="number" id="m-calories" class="form-input" placeholder="e.g. 250" min="0" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Protein (g)</label>
+              <input type="number" id="m-protein" class="form-input" placeholder="0" min="0" step="0.1" />
+            </div>
+            <div class="form-group">
+              <label>Carbs (g)</label>
+              <input type="number" id="m-carbs" class="form-input" placeholder="0" min="0" step="0.1" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Fat (g)</label>
+              <input type="number" id="m-fat" class="form-input" placeholder="0" min="0" step="0.1" />
+            </div>
+            <div></div>
+          </div>
+          <button class="btn-primary" id="manual-save">Save Entry</button>
+        </div>
+
+        <!-- Auto-Fetch Entry -->
+        <div class="tab-panel" id="panel-auto">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Food Name</label>
+              <input type="text" id="a-food" class="form-input" placeholder="e.g. Brown rice" />
+            </div>
+            <div class="form-group">
+              <label>Cooking</label>
+              <select id="a-cooking" class="form-select">
+                <option value="na">N/A</option>
+                <option value="raw">Raw / Uncooked</option>
+                <option value="cooked">Cooked</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group" style="max-width:200px;">
+            <label>Weight (g) *</label>
+            <input type="number" id="a-weight" class="form-input" placeholder="e.g. 200" min="1" />
+          </div>
+          <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">
+            <button class="btn-primary" id="auto-fetch">Fetch Nutrition</button>
+            <span style="font-size:0.8rem;color:var(--text-3);">Searches USDA → Open Food Facts</span>
+          </div>
+
+          <!-- Result panel -->
+          <div class="auto-result hidden" id="auto-result">
+            <div class="result-food-name" id="r-food"></div>
+            <div class="result-grid">
+              <div class="result-macro">
+                <div class="result-macro-val" id="r-calories">—</div>
+                <div class="result-macro-label">kcal</div>
+              </div>
+              <div class="result-macro">
+                <div class="result-macro-val" id="r-protein">—</div>
+                <div class="result-macro-label">Protein</div>
+              </div>
+              <div class="result-macro">
+                <div class="result-macro-val" id="r-carbs">—</div>
+                <div class="result-macro-label">Carbs</div>
+              </div>
+              <div class="result-macro">
+                <div class="result-macro-val" id="r-fat">—</div>
+                <div class="result-macro-label">Fat</div>
+              </div>
+            </div>
+            <div class="result-source">Source: <span id="r-source"></span></div>
+            <button class="btn-primary mt-2" id="auto-save">Save This Entry</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Today's Log -->
+      <div class="card">
+        <div class="card-title">Today's Food Log</div>
+        <div class="entries-list" id="entries-list"></div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { initCalories } from "../js/calories.js";
+    initCalories();
+  </script>
+</body>
+</html>

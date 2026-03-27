@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HabitFuel — Goals</title>
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <div id="sidebar"></div>
+
+    <main class="main-content">
+      <div class="page-header">
+        <h1 class="page-title">Goals</h1>
+        <p class="page-subtitle">Set your nutrition and fitness targets. These drive your daily progress bars.</p>
+      </div>
+
+      <div class="card" style="max-width:560px;">
+        <div class="card-title">Your Goal</div>
+
+        <div class="form-group">
+          <label>Goal Type</label>
+          <select id="goal-type" class="form-select">
+            <option value="bulk">Bulking — Build muscle, calorie surplus</option>
+            <option value="cut">Cutting — Lose fat, calorie deficit</option>
+            <option value="maintain">Maintain — Stay at current weight</option>
+            <option value="productivity">Productivity — Focus on habits & energy</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Daily Calorie Goal (kcal)</label>
+            <input type="number" id="calorie-goal" class="form-input" value="2000" min="500" max="10000" />
+          </div>
+          <div class="form-group">
+            <label>Daily Protein Goal (g)</label>
+            <input type="number" id="protein-goal" class="form-input" value="150" min="10" max="500" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Daily Carbs Goal (g)</label>
+            <input type="number" id="carbs-goal" class="form-input" value="250" min="0" />
+          </div>
+          <div class="form-group">
+            <label>Daily Fat Goal (g)</label>
+            <input type="number" id="fat-goal" class="form-input" value="65" min="0" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Notes (optional)</label>
+          <textarea id="goal-notes" class="form-textarea" placeholder="e.g. Training 4x a week, aiming for 180lbs by June"></textarea>
+        </div>
+
+        <button class="btn-primary" id="save-goals">Save Goals</button>
+      </div>
+
+      <!-- Goal presets -->
+      <div class="card mt-3" style="max-width:560px;">
+        <div class="card-title">Quick Presets</div>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;">
+          <button class="btn-ghost" data-preset="bulk">💪 Bulking — 3000 kcal / 180g protein</button>
+          <button class="btn-ghost" data-preset="cut">🔥 Cutting — 1800 kcal / 160g protein</button>
+          <button class="btn-ghost" data-preset="maintain">⚖ Maintain — 2200 kcal / 140g protein</button>
+          <button class="btn-ghost" data-preset="productivity">🧠 Productivity — 2000 kcal / 120g protein</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { initGoals } from "../js/goals.js";
+    initGoals();
+
+    const presets = {
+      bulk:         { cal: 3000, prot: 180, carbs: 350, fat: 90 },
+      cut:          { cal: 1800, prot: 160, carbs: 180, fat: 55 },
+      maintain:     { cal: 2200, prot: 140, carbs: 250, fat: 70 },
+      productivity: { cal: 2000, prot: 120, carbs: 230, fat: 65 },
+    };
+
+    document.querySelectorAll("[data-preset]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const p = presets[btn.dataset.preset];
+        document.getElementById("calorie-goal").value = p.cal;
+        document.getElementById("protein-goal").value = p.prot;
+        document.getElementById("carbs-goal").value   = p.carbs;
+        document.getElementById("fat-goal").value     = p.fat;
+        document.getElementById("goal-type").value    = btn.dataset.preset;
+      });
+    });
+  </script>
+</body>
+</html>

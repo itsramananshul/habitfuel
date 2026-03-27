@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HabitFuel — Routines</title>
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="stylesheet" href="../css/routines.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <div id="sidebar"></div>
+
+    <main class="main-content">
+      <div class="page-header flex-between">
+        <div>
+          <h1 class="page-title">Routines</h1>
+          <p class="page-subtitle">Track your daily habits. Click a task to toggle completion.</p>
+        </div>
+        <button class="btn-primary" id="add-routine-btn">+ New Routine</button>
+      </div>
+
+      <!-- 7-Day Week Overview -->
+      <div class="card" style="margin-bottom:1.75rem;">
+        <div class="card-title">This Week</div>
+        <div class="week-grid" id="week-grid"></div>
+      </div>
+
+      <!-- Routine Cards -->
+      <div class="routines-grid" id="routines-list"></div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { initRoutines, openAddRoutineModal } from "../js/routines.js";
+    initRoutines();
+    document.getElementById("add-routine-btn").addEventListener("click", openAddRoutineModal);
+  </script>
+</body>
+</html>

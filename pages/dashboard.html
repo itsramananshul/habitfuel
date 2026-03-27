@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HabitFuel — Dashboard</title>
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="stylesheet" href="../css/dashboard.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <div id="sidebar"></div>
+
+    <main class="main-content">
+      <div class="page-header flex-between">
+        <div>
+          <h1 class="page-title">Dashboard</h1>
+          <p class="page-subtitle" id="stat-date">Today</p>
+        </div>
+      </div>
+
+      <!-- Stat Cards -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Calories</div>
+          <div class="stat-value" id="stat-calories">— / —</div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" id="bar-calories" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Protein</div>
+          <div class="stat-value" id="stat-protein">— / —</div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" id="bar-protein" style="width:0%;background:var(--green)"></div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Tasks Done</div>
+          <div class="stat-value" id="stat-tasks">— / —</div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" id="bar-tasks" style="width:0%;background:var(--blue-mid)"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 30-Day Heatmap -->
+      <div class="card heatmap-card">
+        <div class="card-title">30-Day Habit Heatmap</div>
+        <div id="heatmap"></div>
+        <div class="heatmap-legend">
+          <div class="heat-cell heat-0"></div> None
+          <div class="heat-cell heat-1" style="margin-left:0.75rem"></div> Partial
+          <div class="heat-cell heat-2" style="margin-left:0.75rem"></div> Most
+          <div class="heat-cell heat-3" style="margin-left:0.75rem"></div> Complete
+        </div>
+      </div>
+
+      <!-- Quick links -->
+      <div class="grid-2 mt-3">
+        <a href="./routines.html" class="card" style="text-decoration:none;cursor:pointer;">
+          <div class="card-title">Today's Routines →</div>
+          <p style="color:var(--text-2);font-size:0.9rem;">Check off your habits and tasks for today.</p>
+        </a>
+        <a href="./calories.html" class="card" style="text-decoration:none;cursor:pointer;">
+          <div class="card-title">Log Food →</div>
+          <p style="color:var(--text-2);font-size:0.9rem;">Track your calories and macros manually or automatically.</p>
+        </a>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { initDashboard } from "../js/dashboard.js";
+    initDashboard();
+  </script>
+</body>
+</html>

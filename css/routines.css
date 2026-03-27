@@ -1,0 +1,145 @@
+/* ── Week Grid ───────────────────────────────────────────── */
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+}
+
+.day-cell {
+  border-radius: var(--radius);
+  padding: 0.75rem 0.5rem;
+  text-align: center;
+  transition: all var(--transition);
+  border: 1px solid var(--border);
+  cursor: default;
+}
+
+.day-cell:hover { transform: translateY(-2px); }
+
+.day-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-3);
+  margin-bottom: 0.3rem;
+}
+
+.day-num {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+}
+
+.day-count {
+  font-size: 0.7rem;
+  color: var(--text-3);
+  margin-top: 0.3rem;
+}
+
+.day-today { border-color: var(--accent); }
+.day-today .day-num { color: var(--accent); }
+
+.day-empty   { background: var(--bg-2); }
+.day-partial { background: rgba(91, 141, 217, 0.15); border-color: rgba(91, 141, 217, 0.4); }
+.day-partial .day-num { color: var(--blue-mid); }
+.day-complete { background: rgba(56, 189, 248, 0.12); border-color: rgba(56, 189, 248, 0.4); }
+.day-complete .day-num { color: var(--accent); }
+
+@media (max-width: 600px) { .week-grid { grid-template-columns: repeat(4, 1fr); } }
+
+/* ── Routine Cards ───────────────────────────────────────── */
+.routines-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.25rem;
+}
+
+.routine-card {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  transition: border-color var(--transition);
+}
+
+.status-partial  { border-left: 3px solid var(--blue-mid); }
+.status-complete { border-left: 3px solid var(--accent); }
+
+.routine-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.routine-name {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.routine-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.task-count {
+  font-size: 0.75rem;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+/* ── Tasks ───────────────────────────────────────────────── */
+.task-list {
+  list-style: none;
+  margin: 0.75rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.5rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all var(--transition);
+  user-select: none;
+}
+
+.task-item:hover { background: var(--bg-3); }
+
+.task-check {
+  width: 20px;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--text-3);
+  flex-shrink: 0;
+  transition: color var(--transition);
+}
+
+.task-done .task-check { color: var(--accent); }
+.task-done .task-name  { text-decoration: line-through; color: var(--text-3); }
+
+.task-name {
+  flex: 1;
+  font-size: 0.9rem;
+  color: var(--text);
+  transition: color var(--transition);
+}
+
+.task-delete {
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+.task-item:hover .task-delete { opacity: 1; }

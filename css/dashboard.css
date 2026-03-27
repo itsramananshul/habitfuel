@@ -1,0 +1,41 @@
+/* ── Dashboard ───────────────────────────────────────────── */
+.dashboard-date {
+  font-size: 0.9rem;
+  color: var(--text-2);
+  font-weight: 500;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) { .stats-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 480px) { .stats-grid { grid-template-columns: 1fr; } }
+
+.heatmap-card {
+  margin-top: 1.5rem;
+}
+
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--text-3);
+}
+
+.heatmap-legend .heat-cell {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+#heatmap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}

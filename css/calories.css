@@ -1,0 +1,135 @@
+/* ── Calorie Summary Bar ─────────────────────────────────── */
+.calorie-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.macro-pill {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.macro-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+}
+
+.macro-value {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.macro-inline {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-2);
+}
+
+/* ── Entry Log ───────────────────────────────────────────── */
+.entries-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.entry-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  transition: border-color var(--transition);
+}
+.entry-row:hover { border-color: var(--border-2); }
+
+.entry-main { flex: 1; min-width: 0; }
+
+.entry-food {
+  display: block;
+  font-weight: 500;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.entry-meta {
+  font-size: 0.75rem;
+  color: var(--text-3);
+  text-transform: capitalize;
+}
+
+.entry-macros {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.macro { font-size: 0.8rem; color: var(--text-2); }
+.macro.cal { font-weight: 600; color: var(--text); }
+
+/* ── Auto Result Panel ───────────────────────────────────── */
+.auto-result {
+  margin-top: 1rem;
+  background: var(--bg-3);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  animation: slideDown 0.25s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.result-food-name {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  color: var(--accent);
+}
+
+.result-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.result-macro {
+  text-align: center;
+}
+
+.result-macro-val {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.result-macro-label {
+  font-size: 0.7rem;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.result-source {
+  font-size: 0.75rem;
+  color: var(--text-3);
+  margin-top: 0.5rem;
+}

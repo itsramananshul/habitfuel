@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HabitFuel — Feedback</title>
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <div id="sidebar"></div>
+
+    <main class="main-content">
+      <div class="page-header">
+        <h1 class="page-title">Feedback</h1>
+        <p class="page-subtitle">Got a bug, feature idea, or just want to say hi? We read everything.</p>
+      </div>
+
+      <div class="card" style="max-width:560px;">
+        <form id="feedback-form">
+          <div class="form-group">
+            <label>Type</label>
+            <select id="fb-type" class="form-select">
+              <option value="bug">🐛 Bug Report</option>
+              <option value="feature">✨ Feature Request</option>
+              <option value="general">💬 General Feedback</option>
+              <option value="other">📦 Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Subject</label>
+            <input type="text" id="fb-subject" class="form-input" placeholder="Brief summary" />
+          </div>
+          <div class="form-group">
+            <label>Message *</label>
+            <textarea id="fb-message" class="form-textarea" placeholder="Tell us what's on your mind..." style="min-height:140px;"></textarea>
+          </div>
+          <button type="submit" class="btn-primary" id="feedback-submit">Send Feedback</button>
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { initFeedback } from "../js/feedback.js";
+    initFeedback();
+  </script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HabitFuel</title>
+  <link rel="stylesheet" href="./css/main.css" />
+  <style>
+    .landing {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 1.5rem;
+      text-align: center;
+      padding: 2rem;
+      background:
+        radial-gradient(ellipse at 30% 40%, rgba(56, 189, 248, 0.08) 0%, transparent 60%),
+        var(--bg);
+    }
+    .landing-logo {
+      width: 64px; height: 64px;
+      background: var(--accent);
+      color: #000;
+      border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 1.4rem;
+      margin: 0 auto;
+    }
+    .landing-title {
+      font-family: var(--font-display);
+      font-size: 3.5rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1;
+    }
+    .landing-title span { color: var(--accent); }
+    .landing-sub {
+      color: var(--text-2);
+      font-size: 1.1rem;
+      max-width: 480px;
+    }
+    .landing-btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+  <div class="landing">
+    <div class="landing-logo">HF</div>
+    <h1 class="landing-title">Habit<span>Fuel</span></h1>
+    <p class="landing-sub">Track your daily routines and nutrition in one unified, free platform. Build discipline. Reach your goals.</p>
+    <div class="landing-btns">
+      <a href="./pages/auth.html" class="btn-primary">Get Started — It's Free</a>
+      <a href="./pages/dashboard.html" class="btn-ghost">Go to Dashboard</a>
+    </div>
+  </div>
+
+  <script type="module">
+    import { getUser } from "./js/auth.js";
+    // Auto-redirect if already logged in
+    getUser().then(user => {
+      if (user) window.location.href = "./pages/dashboard.html";
+    });
+  </script>
+</body>
+</html>
