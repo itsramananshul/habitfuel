@@ -5,47 +5,39 @@ const USDA_API_KEY = "3xfW4ib6a6Tg8BhxkYckndMf4HIlNgvYKe6yUrcV";
 // ── USDA FoodData Central ───────────────────────────────────
 async function fetchUSDA(query, isCooked) {
   const searchTerm = isCooked ? `${query} cooked` : query;
-  const url = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(searchTerm)}&dataType=Foundation,SR%20Legacy&pageSize=10&api_key=${USDA_API_KEY}`;
+  const url = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(searchTerm)}&dataType=Foundation,SR%20Legacy&pageSize=5&api_key=${USDA_API_KEY}`;
 
   const res = await fetch(url);
   if (!res.ok) throw new Error("USDA request failed");
   const data = await res.json();
 
-  let foods = data.foods || [];
+  const foods = data.foods || [];
   if (foods.length === 0) throw new Error("No USDA results");
 
-  // Among all results, pick the one with the SHORTEST description
-  // that still contains all the user's query words.
-  // Plain foods (e.g. "Chicken, breast, cooked") are always shorter than
-  // processed ones (e.g. "Chicken breast tenders, breaded, cooked, microwaved").
-  const queryWords = query.toLowerCase().split(/\s+/);
+  const food = foods[0];
 
-  const matching = foods.filter(f =>
-    queryWords.every(w => f.description.toLowerCase().includes(w))
-  );
+  // USDA Foundation/SR Legacy always reports nutrients per 100g serving.
+  // So serving size = 100g. Divide by 100 to get per-gram, then user multiplies by their weight.
+  const servingSize = food.servingSize && food.servingSize > 0 ? food.servingSize : 100;
 
-  const pool = matching.length > 0 ? matching : foods;
-  const bestFood = pool.reduce((a, b) =>
-    a.description.length <= b.description.length ? a : b
-  );
-
-  const nutrients = {};
-  (bestFood.foodNutrients || []).forEach(n => {
+  const raw = {};
+  (food.foodNutrients || []).forEach(n => {
     const num = String(n.nutrientNumber || "");
-    if (num === "208") nutrients.calories = n.value; // Energy kcal
-    if (num === "203") nutrients.protein  = n.value; // Protein
-    if (num === "205") nutrients.carbs    = n.value; // Carbohydrate
-    if (num === "204") nutrients.fat      = n.value; // Total fat
+    if (num === "208") raw.calories = n.value;
+    if (num === "203") raw.protein  = n.value;
+    if (num === "205") raw.carbs    = n.value;
+    if (num === "204") raw.fat      = n.value;
   });
 
+  // Per-gram values = nutrient value / serving size
   return {
     source: "USDA",
-    foodName: bestFood.description,
-    per100g: {
-      calories: nutrients.calories || 0,
-      protein:  nutrients.protein  || 0,
-      carbs:    nutrients.carbs    || 0,
-      fat:      nutrients.fat      || 0,
+    foodName: food.description,
+    perGram: {
+      calories: (raw.calories || 0) / servingSize,
+      protein:  (raw.protein  || 0) / servingSize,
+      carbs:    (raw.carbs    || 0) / servingSize,
+      fat:      (raw.fat      || 0) / servingSize,
     }
   };
 }
@@ -63,19 +55,20 @@ async function fetchOpenFoodFacts(query) {
   const product = data.products.find(p => p.nutriments) || data.products[0];
   const n = product.nutriments || {};
 
+  // OFF always provides _100g fields — divide by 100 to get per-gram
   return {
     source: "Open Food Facts",
     foodName: product.product_name || query,
-    per100g: {
-      calories: n["energy-kcal_100g"] || (n["energy_100g"] ? n["energy_100g"] / 4.184 : 0),
-      protein:  n["proteins_100g"]    || 0,
-      carbs:    n["carbohydrates_100g"] || 0,
-      fat:      n["fat_100g"]         || 0,
+    perGram: {
+      calories: (n["energy-kcal_100g"] || (n["energy_100g"] ? n["energy_100g"] / 4.184 : 0)) / 100,
+      protein:  (n["proteins_100g"]      || 0) / 100,
+      carbs:    (n["carbohydrates_100g"] || 0) / 100,
+      fat:      (n["fat_100g"]           || 0) / 100,
     }
   };
 }
 
-// ── Main fetch with fallback chain ──────────────────────────
+// ── Main fetch ───────────────────────────────────────────────
 export async function fetchNutrition(query, weightG, cookingType) {
   const isCooked = cookingType === "cooked";
   let result = null;
@@ -93,14 +86,12 @@ export async function fetchNutrition(query, weightG, cookingType) {
     }
   }
 
-  const cookMultiplier = (cookingType === "cooked" && result.source !== "USDA") ? 1.25 : 1.0;
-  const factor = (weightG / 100) * cookMultiplier;
-
+  // Multiply per-gram values by the user's weight to get final totals
   const totals = {
-    calories: Math.round(result.per100g.calories * factor),
-    protein:  Math.round(result.per100g.protein  * factor * 10) / 10,
-    carbs:    Math.round(result.per100g.carbs     * factor * 10) / 10,
-    fat:      Math.round(result.per100g.fat       * factor * 10) / 10,
+    calories: Math.round(result.perGram.calories * weightG),
+    protein:  Math.round(result.perGram.protein  * weightG * 10) / 10,
+    carbs:    Math.round(result.perGram.carbs     * weightG * 10) / 10,
+    fat:      Math.round(result.perGram.fat       * weightG * 10) / 10,
   };
 
   if (isCooked) {
