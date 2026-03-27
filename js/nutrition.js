@@ -1,61 +1,60 @@
 // ── Nutrition API: USDA FoodData Central + Open Food Facts fallback ──
 
-const USDA_API_KEY = "3xfW4ib6a6Tg8BhxkYckndMf4HIlNgvYKe6yUrcV"; // Replace with your free key from https://fdc.nal.usda.gov/api-guide.html
+const USDA_API_KEY = "3xfW4ib6a6Tg8BhxkYckndMf4HIlNgvYKe6yUrcV";
 
 // ── USDA FoodData Central ───────────────────────────────────
 async function fetchUSDA(query, isCooked) {
   const searchTerm = isCooked ? `${query} cooked` : query;
 
-  // Foundation & SR Legacy data types store all nutrients per 100g by definition.
-  // Branded foods store per-serving — excluding them avoids the scaling bug.
-  const url = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(searchTerm)}&dataType=Foundation,SR%20Legacy&pageSize=5&api_key=${USDA_API_KEY}`;
+  // Foundation & SR Legacy always store nutrients per 100g — no serving-size math needed
+  const url = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(searchTerm)}&dataType=Foundation,SR%20Legacy&pageSize=10&api_key=${USDA_API_KEY}`;
 
   const res = await fetch(url);
   if (!res.ok) throw new Error("USDA request failed");
   const data = await res.json();
 
-  // If Foundation/SR Legacy returns nothing, fall back to all types (branded etc.)
-  // but normalise by servingSize so values are always per-100g.
   let foods = data.foods || [];
+
+  // If nothing found, fall back to all types and normalise by servingSize
   if (foods.length === 0) {
-    const fallbackUrl = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(searchTerm)}&pageSize=5&api_key=${USDA_API_KEY}`;
-    const fallbackRes = await fetch(fallbackUrl);
-    if (!fallbackRes.ok) throw new Error("USDA request failed");
-    const fallbackData = await fallbackRes.json();
-    foods = fallbackData.foods || [];
+    const fbRes = await fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(searchTerm)}&pageSize=10&api_key=${USDA_API_KEY}`);
+    if (!fbRes.ok) throw new Error("USDA request failed");
+    const fbData = await fbRes.json();
+    foods = fbData.foods || [];
   }
 
   if (foods.length === 0) throw new Error("No USDA results");
 
-  const food = foods[0];
+  // Pick the best match: prefer entries whose description closely matches the query
+  // and avoid "breaded", "fried", "with sauce" variants unless user asked for them
+  const queryLower = searchTerm.toLowerCase();
+  const avoid = ["breaded", "battered", "fried", "with sauce", "stuffed", "frozen", "canned", "flavored"];
 
-  // servingSize is populated for Branded items (e.g. 28g per serving).
-  // For Foundation/SR Legacy it is absent, meaning values are already per 100g.
+  let food = foods.find(f => {
+    const desc = f.description.toLowerCase();
+    return !avoid.some(word => desc.includes(word));
+  }) || foods[0]; // fall back to first if everything is "avoided"
+
+  // For Branded foods servingSize may be set (e.g. 284g); normalise to per-100g
   const servingSize = food.servingSize && food.servingSize > 0 ? food.servingSize : 100;
-  const normFactor  = 100 / servingSize; // = 1.0 for Foundation/SR Legacy
+  const normFactor  = 100 / servingSize;
 
   const nutrients = {};
   (food.foodNutrients || []).forEach(n => {
-    const name = n.nutrientName?.toLowerCase() || "";
-    const unit = n.unitName?.toLowerCase() || "";
     const num  = String(n.nutrientNumber || "");
+    const name = (n.nutrientName || "").toLowerCase();
+    const unit = (n.unitName || "").toLowerCase();
 
-    // Energy — USDA nutrient number 1008 = Energy (kcal)
-    if (num === "1008" || (name.includes("energy") && unit === "kcal")) {
+    // Energy: nutrient number 208 = kcal (confirmed from real API response)
+    if (num === "208" || (name.includes("energy") && unit === "kcal")) {
       nutrients.calories = n.value;
     }
-    // Protein — nutrient number 1003
-    if (num === "1003" || (name.includes("protein") && !name.includes("non-protein"))) {
-      nutrients.protein = n.value;
-    }
-    // Carbohydrate — nutrient number 1005
-    if (num === "1005" || name.includes("carbohydrate")) {
-      nutrients.carbs = n.value;
-    }
-    // Total fat — nutrient number 1004
-    if (num === "1004" || name.includes("total lipid")) {
-      nutrients.fat = n.value;
-    }
+    // Protein: nutrient number 203
+    if (num === "203") nutrients.protein = n.value;
+    // Carbohydrate: nutrient number 205
+    if (num === "205") nutrients.carbs = n.value;
+    // Total fat: nutrient number 204
+    if (num === "204") nutrients.fat = n.value;
   });
 
   return {
@@ -83,7 +82,6 @@ async function fetchOpenFoodFacts(query) {
   const product = data.products.find(p => p.nutriments) || data.products[0];
   const n = product.nutriments || {};
 
-  // OFF _100g fields are always per 100g — no normalization needed
   return {
     source: "Open Food Facts",
     foodName: product.product_name || query,
@@ -114,11 +112,10 @@ export async function fetchNutrition(query, weightG, cookingType) {
     }
   }
 
-  // Cooking adjustment: cooked food loses ~20-25% water, concentrating nutrients.
-  // Only apply to OFF results since USDA cooked variants are already adjusted.
+  // Cooking adjustment for OFF only (USDA cooked variants already adjusted)
   const cookMultiplier = (cookingType === "cooked" && result.source !== "USDA") ? 1.25 : 1.0;
 
-  // factor scales all per-100g values to the actual weight entered by the user
+  // Scale per-100g values to the actual weight the user entered
   const factor = (weightG / 100) * cookMultiplier;
 
   const totals = {
