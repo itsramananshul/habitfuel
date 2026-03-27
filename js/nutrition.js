@@ -17,7 +17,11 @@ async function fetchUSDA(query, isCooked) {
   const nutrients = {};
   (food.foodNutrients || []).forEach(n => {
     const name = n.nutrientName?.toLowerCase() || "";
-    if (name.includes("energy") && name.includes("kcal")) nutrients.calories = n.value;
+    const unit = n.unitName?.toLowerCase() || "";
+    // USDA returns energy as nutrientName "Energy" with unitName "KCAL"
+    if (name.includes("energy") && (unit === "kcal" || unit === "kcal")) nutrients.calories = n.value;
+    // Also catch by nutrient number 1008 (Energy in kcal)
+    if (n.nutrientNumber === "1008" || n.nutrientId === 1008) nutrients.calories = n.value;
     if (name.includes("protein")) nutrients.protein = n.value;
     if (name.includes("carbohydrate")) nutrients.carbs = n.value;
     if (name.includes("total lipid") || name.includes("fat")) nutrients.fat = n.value;
