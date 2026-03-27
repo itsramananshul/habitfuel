@@ -5,8 +5,6 @@ const USDA_API_KEY = "3xfW4ib6a6Tg8BhxkYckndMf4HIlNgvYKe6yUrcV";
 // ── USDA FoodData Central ───────────────────────────────────
 async function fetchUSDA(query, isCooked) {
   const searchTerm = isCooked ? `${query} cooked` : query;
-
-  // Foundation & SR Legacy always store nutrients per 100g — no serving-size math needed
   const url = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(searchTerm)}&dataType=Foundation,SR%20Legacy&pageSize=10&api_key=${USDA_API_KEY}`;
 
   const res = await fetch(url);
@@ -14,57 +12,44 @@ async function fetchUSDA(query, isCooked) {
   const data = await res.json();
 
   let foods = data.foods || [];
-
-  // If nothing found, fall back to all types and normalise by servingSize
-  if (foods.length === 0) {
-    const fbRes = await fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(searchTerm)}&pageSize=10&api_key=${USDA_API_KEY}`);
-    if (!fbRes.ok) throw new Error("USDA request failed");
-    const fbData = await fbRes.json();
-    foods = fbData.foods || [];
-  }
-
   if (foods.length === 0) throw new Error("No USDA results");
 
-  // Pick the best match: prefer entries whose description closely matches the query
-  // and avoid "breaded", "fried", "with sauce" variants unless user asked for them
-  const queryLower = searchTerm.toLowerCase();
-  const avoid = ["breaded", "battered", "fried", "with sauce", "stuffed", "frozen", "canned", "flavored"];
+  // Pick the food whose description best matches the user's query.
+  // Score = number of query words found in the food description.
+  // This prevents e.g. "chicken breast" from matching "chicken breast tenders, breaded".
+  const queryWords = query.toLowerCase().split(/\s+/);
+  let bestFood = foods[0];
+  let bestScore = -1;
 
-  let food = foods.find(f => {
-    const desc = f.description.toLowerCase();
-    return !avoid.some(word => desc.includes(word));
-  }) || foods[0]; // fall back to first if everything is "avoided"
-
-  // For Branded foods servingSize may be set (e.g. 284g); normalise to per-100g
-  const servingSize = food.servingSize && food.servingSize > 0 ? food.servingSize : 100;
-  const normFactor  = 100 / servingSize;
+  for (const food of foods) {
+    const desc = food.description.toLowerCase();
+    const wordMatches = queryWords.filter(w => desc.includes(w)).length;
+    // Penalise results that add extra unwanted words (shorter description = closer match)
+    const score = wordMatches - desc.split(/[\s,]+/).length * 0.05;
+    if (score > bestScore) {
+      bestScore = score;
+      bestFood = food;
+    }
+  }
 
   const nutrients = {};
-  (food.foodNutrients || []).forEach(n => {
-    const num  = String(n.nutrientNumber || "");
-    const name = (n.nutrientName || "").toLowerCase();
-    const unit = (n.unitName || "").toLowerCase();
-
-    // Energy: nutrient number 208 = kcal (confirmed from real API response)
-    if (num === "208" || (name.includes("energy") && unit === "kcal")) {
-      nutrients.calories = n.value;
-    }
-    // Protein: nutrient number 203
-    if (num === "203") nutrients.protein = n.value;
-    // Carbohydrate: nutrient number 205
-    if (num === "205") nutrients.carbs = n.value;
-    // Total fat: nutrient number 204
-    if (num === "204") nutrients.fat = n.value;
+  (bestFood.foodNutrients || []).forEach(n => {
+    const num = String(n.nutrientNumber || "");
+    // Use USDA nutrient numbers directly (confirmed from real API response)
+    if (num === "208") nutrients.calories = n.value; // Energy (kcal)
+    if (num === "203") nutrients.protein  = n.value; // Protein
+    if (num === "205") nutrients.carbs    = n.value; // Carbohydrate, by difference
+    if (num === "204") nutrients.fat      = n.value; // Total lipid (fat)
   });
 
   return {
     source: "USDA",
-    foodName: food.description,
+    foodName: bestFood.description,
     per100g: {
-      calories: Math.round((nutrients.calories || 0) * normFactor * 10)  / 10,
-      protein:  Math.round((nutrients.protein  || 0) * normFactor * 100) / 100,
-      carbs:    Math.round((nutrients.carbs    || 0) * normFactor * 100) / 100,
-      fat:      Math.round((nutrients.fat      || 0) * normFactor * 100) / 100,
+      calories: nutrients.calories || 0,
+      protein:  nutrients.protein  || 0,
+      carbs:    nutrients.carbs    || 0,
+      fat:      nutrients.fat      || 0,
     }
   };
 }
