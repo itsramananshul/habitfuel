@@ -18,10 +18,36 @@ export async function signIn(email, password) {
   return data;
 }
 
-export async function signOut() {
-  const { error } = await supabaseClient.auth.signOut();
+// Owner sign-in via ATLAS (ARIA SSO) through Supabase Custom OIDC. Additive —
+// email/password unchanged. max_age=10 forces a password prompt on every
+// sign-in (per authentik authorize.py); prompt=login is best-effort.
+export async function signInWithAtlas() {
+  const { error } = await supabaseClient.auth.signInWithOAuth({
+    provider: "custom:atlas",
+    options: {
+      scopes: "openid email profile",
+      redirectTo: window.location.origin + "/pages/auth.html",
+      queryParams: { prompt: "login", max_age: "10" },
+    },
+  });
   if (error) throw error;
-  window.location.href = "/pages/auth.html";
+}
+
+export async function signOut() {
+  // Only ATLAS-authenticated sessions end the ATLAS SSO session on logout;
+  // regular email/password users just return to the login page.
+  let viaAtlas = false;
+  try {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    const md = session?.user?.app_metadata || {};
+    viaAtlas = [md.provider, ...(md.providers || [])].some((p) => String(p || "").includes("atlas"));
+  } catch (e) {}
+  try { await supabaseClient.auth.signOut(); } catch (e) {}
+  if (viaAtlas) {
+    window.location.href = "https://atlas.anshullabs.tech/application/o/habitfuel/end-session/";
+  } else {
+    window.location.href = "/pages/auth.html";
+  }
 }
 
 export async function requireAuth() {

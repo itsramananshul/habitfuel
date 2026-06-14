@@ -39,6 +39,9 @@
         <button class="btn-primary" id="btn-signin" style="width:100%;justify-content:center;margin-top:0.5rem;">
           Sign In
         </button>
+        <button class="btn-primary" id="btn-atlas" style="width:100%;justify-content:center;margin-top:0.5rem;background:transparent;border:1px solid var(--border,#333);color:inherit;">
+          Sign in with ATLAS →
+        </button>
       </div>
 
       <!-- Sign Up -->
@@ -67,11 +70,23 @@
   </div>
 
   <script type="module">
-    import { signIn, signUp, getUser } from "../js/auth.js";
+    import { signIn, signUp, getUser, signInWithAtlas } from "../js/auth.js";
+    import { supabaseClient } from "../js/config.js";
     import { setLoading } from "../js/ui.js";
 
-    // Already logged in?
-    getUser().then(u => { if (u) window.location.href = "/pages/dashboard.html"; });
+    // Already logged in, or just returned from an ATLAS/OAuth redirect? Go to
+    // the dashboard. onAuthStateChange catches the session restored from the
+    // return URL (it can land a beat after load), so we never get stuck here.
+    let _went = false;
+    function toDashboard() { if (!_went) { _went = true; window.location.href = "/pages/dashboard.html"; } }
+    supabaseClient.auth.onAuthStateChange((_e, session) => { if (session?.user) toDashboard(); });
+    getUser().then(u => { if (u) toDashboard(); });
+
+    // ATLAS owner sign-in
+    document.getElementById("btn-atlas").addEventListener("click", async () => {
+      clearError();
+      try { await signInWithAtlas(); } catch (e) { showError(e.message || "ATLAS sign-in failed."); }
+    });
 
     // Tab switching
     const tabs = document.querySelectorAll(".auth-tab");
